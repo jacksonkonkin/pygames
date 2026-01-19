@@ -1,7 +1,29 @@
 // Space Invaders Game - JavaScript/Canvas Version
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
-const overlay = document.getElementById('overlay');
+let canvas, ctx, overlay;
+
+// Wait for DOM to be ready
+document.addEventListener('DOMContentLoaded', () => {
+    canvas = document.getElementById('gameCanvas');
+    ctx = canvas.getContext('2d');
+    overlay = document.getElementById('overlay');
+    
+    // Initialize game
+    initStars();
+    initEnemies();
+    initBarriers();
+    showMenu();
+    gameLoop(0);
+    
+    // Use event delegation for buttons
+    overlay.addEventListener('click', (e) => {
+        if (e.target.classList.contains('button') || e.target.closest('.button')) {
+            const button = e.target.closest('.button') || e.target;
+            if (button.dataset.action === 'start') {
+                startGame();
+            }
+        }
+    });
+});
 
 // Constants
 const WINDOW_WIDTH = 800;
@@ -366,13 +388,14 @@ function startNextWave() {
 }
 
 function showMenu() {
+    if (!overlay) return;
     overlay.style.display = 'flex';
     overlay.innerHTML = `
         <h1>👾 SPACE INVADERS</h1>
         <h2>Defend Earth!</h2>
         <p>Arrow Keys / A/D - Move<br>SPACE - Shoot<br>P - Pause</p>
         <p>High Score: ${highScore}</p>
-        <button class="button" onclick="startGame()">Press SPACE to Start</button>
+        <button class="button" data-action="start">Press SPACE to Start</button>
     `;
 }
 
@@ -890,9 +913,5 @@ function gameLoop(currentTime) {
     requestAnimationFrame(gameLoop);
 }
 
-// Initialize
-initStars();
-initEnemies();
-initBarriers();
-showMenu();
-gameLoop(0);
+// Make functions globally accessible (fallback)
+window.startGame = startGame;

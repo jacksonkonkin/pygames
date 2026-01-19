@@ -1,9 +1,31 @@
 // Pong Game - JavaScript/Canvas Version
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
-const overlay = document.getElementById('overlay');
-const overlayTitle = document.getElementById('overlayTitle');
-const overlayText = document.getElementById('overlayText');
+let canvas, ctx, overlay, overlayTitle, overlayText;
+
+// Wait for DOM to be ready
+document.addEventListener('DOMContentLoaded', () => {
+    canvas = document.getElementById('gameCanvas');
+    ctx = canvas.getContext('2d');
+    overlay = document.getElementById('overlay');
+    overlayTitle = document.getElementById('overlayTitle');
+    overlayText = document.getElementById('overlayText');
+    
+    // Initialize game
+    showMenu();
+    gameLoop(0);
+    
+    // Use event delegation for buttons
+    overlay.addEventListener('click', (e) => {
+        if (e.target.classList.contains('button') || e.target.closest('.button')) {
+            const button = e.target.closest('.button') || e.target;
+            const action = button.dataset.action;
+            if (action === 'twoPlayer') {
+                startGame('twoPlayer');
+            } else if (action === 'ai') {
+                startGame('ai');
+            }
+        }
+    });
+});
 
 // Constants
 const WINDOW_WIDTH = 1000;
@@ -224,16 +246,15 @@ function startCountdown() {
 }
 
 function showMenu() {
-    overlayTitle.textContent = 'Classic Arcade Game';
-    overlayText.innerHTML = 'Press 1 for Two Player<br>Press 2 for vs AI';
+    if (!overlay) return;
     overlay.style.display = 'flex';
     overlay.innerHTML = `
         <h1>PONG</h1>
         <h2>Classic Arcade Game</h2>
         <p>Press 1 for Two Player<br>Press 2 for vs AI</p>
         <p>W/S - Left Paddle | Arrow Keys - Right Paddle</p>
-        <button class="button" onclick="startGame('twoPlayer')">1 - Two Player</button>
-        <button class="button" onclick="startGame('ai')">2 - vs AI</button>
+        <button class="button" data-action="twoPlayer">1 - Two Player</button>
+        <button class="button" data-action="ai">2 - vs AI</button>
     `;
 }
 
@@ -653,6 +674,5 @@ function gameLoop(currentTime) {
     requestAnimationFrame(gameLoop);
 }
 
-// Initialize
-showMenu();
-gameLoop(0);
+// Make functions globally accessible for onclick handlers (fallback)
+window.startGame = startGame;
