@@ -42,10 +42,11 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Constants
-const CANVAS_WIDTH = 640;
-const CANVAS_HEIGHT = 768;
+const CANVAS_WIDTH = 480;
+const CANVAS_HEIGHT = 360;
 const FPS = 60;
-const SCALE = 4; // Scale from original 160x192
+const WALL_THICKNESS = 20;
+const DOOR_WIDTH = 60;
 
 // Colors (Original Atari palette)
 const COLORS = {
@@ -68,8 +69,8 @@ const COLORS = {
 let gameState = 'menu'; // menu, playing, paused, game_over, victory
 let currentRoomId = 0;
 let player = {
-    x: 320,
-    y: 384,
+    x: 240,
+    y: 180,
     width: 8,
     height: 8,
     speed: 2,
@@ -105,13 +106,19 @@ function playBeep(frequency, duration, volume = 0.3) {
     }
 }
 
-// Initialize rooms - simplified Adventure layout
+// Initialize rooms - 6 room simplified layout
 function initRooms() {
     rooms = [];
     
-    // Create ~30 rooms in a grid-like structure
-    // Room IDs: 0-29
-    for (let i = 0; i < 30; i++) {
+    // Create 6 rooms:
+    // Room 0: Golden Castle (locked, goal)
+    // Room 1: Transition room with sword (hub)
+    // Room 2: Dragon room with key 1
+    // Room 3: Dragon room with key 2
+    // Room 4: Room with chalice
+    // Room 5: Empty transition room
+    
+    for (let i = 0; i < 6; i++) {
         rooms.push({
             id: i,
             name: `Room ${i}`,
@@ -129,72 +136,81 @@ function initRooms() {
         });
     }
     
-    // Define room connections (simplified Adventure map)
-    // Horizontal connections
-    for (let i = 0; i < 29; i++) {
-        if (i % 6 !== 5) { // Not right edge
-            rooms[i].exits.east = i + 1;
-            rooms[i + 1].exits.west = i;
-        }
-    }
+    // Room connections:
+    // Room 0 (Golden Castle) <-> Room 1 (Sword/Hub)
+    rooms[0].exits.south = 1;
+    rooms[1].exits.north = 0;
     
-    // Vertical connections
-    for (let i = 0; i < 24; i++) {
-        rooms[i].exits.south = i + 6;
-        rooms[i + 6].exits.north = i;
-    }
+    // Room 1 (Hub) connects to all other rooms
+    rooms[1].exits.east = 2;  // Dragon + Key 1
+    rooms[1].exits.west = 3;  // Dragon + Key 2
+    rooms[1].exits.south = 5; // Transition room
     
-    // Add walls to rooms (maze-like)
+    rooms[2].exits.west = 1;  // Back to hub
+    rooms[3].exits.east = 1;  // Back to hub
+    
+    // Room 5 connects Room 4 to Room 1 (transition room)
+    rooms[5].exits.north = 1; // Back to hub
+    rooms[5].exits.south = 4; // To chalice room
+    rooms[4].exits.north = 5; // Back through transition
+    
+    // Add walls to rooms with clear doorways
     rooms.forEach((room, idx) => {
         const walls = [];
+        const doorCenterX = CANVAS_WIDTH / 2;
+        const doorCenterY = CANVAS_HEIGHT / 2;
         
-        // Outer walls
-        walls.push({x: 0, y: 0, width: CANVAS_WIDTH, height: 20}); // Top
-        walls.push({x: 0, y: CANVAS_HEIGHT - 20, width: CANVAS_WIDTH, height: 20}); // Bottom
-        walls.push({x: 0, y: 0, width: 20, height: CANVAS_HEIGHT}); // Left
-        walls.push({x: CANVAS_WIDTH - 20, y: 0, width: 20, height: CANVAS_HEIGHT}); // Right
+        // Outer walls with doorways
+        // Top wall (with door if exit north)
+        if (room.exits.north === null) {
+            walls.push({x: 0, y: 0, width: CANVAS_WIDTH, height: WALL_THICKNESS});
+        } else {
+            // Doorway in top wall
+            walls.push({x: 0, y: 0, width: doorCenterX - DOOR_WIDTH/2, height: WALL_THICKNESS});
+            walls.push({x: doorCenterX + DOOR_WIDTH/2, y: 0, width: CANVAS_WIDTH - (doorCenterX + DOOR_WIDTH/2), height: WALL_THICKNESS});
+        }
         
-        // Internal walls (maze)
-        if (idx === 5) { // Black Castle
-            room.isCastle = true;
-            room.castleColor = 'black';
-            room.gateLocked = true;
-            walls.push({x: 200, y: 100, width: 240, height: 20});
-            walls.push({x: 200, y: 200, width: 240, height: 20});
-            walls.push({x: 200, y: 100, width: 20, height: 120});
-            walls.push({x: 420, y: 100, width: 20, height: 120});
-            // Gate at bottom
-        } else if (idx === 11) { // White Castle
-            room.isCastle = true;
-            room.castleColor = 'white';
-            room.gateLocked = true;
-            walls.push({x: 200, y: 300, width: 240, height: 20});
-            walls.push({x: 200, y: 400, width: 240, height: 20});
-            walls.push({x: 200, y: 300, width: 20, height: 120});
-            walls.push({x: 420, y: 300, width: 20, height: 120});
-        } else if (idx === 17) { // Yellow Castle
-            room.isCastle = true;
-            room.castleColor = 'yellow';
-            room.gateLocked = true;
-            walls.push({x: 200, y: 500, width: 240, height: 20});
-            walls.push({x: 200, y: 600, width: 240, height: 20});
-            walls.push({x: 200, y: 500, width: 20, height: 120});
-            walls.push({x: 420, y: 500, width: 20, height: 120});
-        } else if (idx === 23) { // Golden Castle (goal)
+        // Bottom wall (with door if exit south)
+        if (room.exits.south === null) {
+            walls.push({x: 0, y: CANVAS_HEIGHT - WALL_THICKNESS, width: CANVAS_WIDTH, height: WALL_THICKNESS});
+        } else {
+            // Doorway in bottom wall
+            walls.push({x: 0, y: CANVAS_HEIGHT - WALL_THICKNESS, width: doorCenterX - DOOR_WIDTH/2, height: WALL_THICKNESS});
+            walls.push({x: doorCenterX + DOOR_WIDTH/2, y: CANVAS_HEIGHT - WALL_THICKNESS, width: CANVAS_WIDTH - (doorCenterX + DOOR_WIDTH/2), height: WALL_THICKNESS});
+        }
+        
+        // Left wall (with door if exit west)
+        if (room.exits.west === null) {
+            walls.push({x: 0, y: 0, width: WALL_THICKNESS, height: CANVAS_HEIGHT});
+        } else {
+            // Doorway in left wall
+            walls.push({x: 0, y: 0, width: WALL_THICKNESS, height: doorCenterY - DOOR_WIDTH/2});
+            walls.push({x: 0, y: doorCenterY + DOOR_WIDTH/2, width: WALL_THICKNESS, height: CANVAS_HEIGHT - (doorCenterY + DOOR_WIDTH/2)});
+        }
+        
+        // Right wall (with door if exit east)
+        if (room.exits.east === null) {
+            walls.push({x: CANVAS_WIDTH - WALL_THICKNESS, y: 0, width: WALL_THICKNESS, height: CANVAS_HEIGHT});
+        } else {
+            // Doorway in right wall
+            walls.push({x: CANVAS_WIDTH - WALL_THICKNESS, y: 0, width: WALL_THICKNESS, height: doorCenterY - DOOR_WIDTH/2});
+            walls.push({x: CANVAS_WIDTH - WALL_THICKNESS, y: doorCenterY + DOOR_WIDTH/2, width: WALL_THICKNESS, height: CANVAS_HEIGHT - (doorCenterY + DOOR_WIDTH/2)});
+        }
+        
+        // Room 0: Golden Castle (locked gate at bottom)
+        if (idx === 0) {
             room.isCastle = true;
             room.castleColor = 'gold';
-            walls.push({x: 200, y: 200, width: 240, height: 20});
-            walls.push({x: 200, y: 400, width: 240, height: 20});
-            walls.push({x: 200, y: 200, width: 20, height: 220});
-            walls.push({x: 420, y: 200, width: 20, height: 220});
-        } else {
-            // Random internal walls for maze effect
-            if (Math.random() > 0.5) {
-                walls.push({x: 150, y: 200, width: 100, height: 20});
-            }
-            if (Math.random() > 0.5) {
-                walls.push({x: 400, y: 400, width: 100, height: 20});
-            }
+            room.gateLocked = true;
+            // Add internal castle walls
+            const castleX = 120;
+            const castleY = 60;
+            const castleW = 240;
+            const castleH = 180;
+            walls.push({x: castleX, y: castleY, width: castleW, height: WALL_THICKNESS}); // Top
+            walls.push({x: castleX, y: castleY + castleH - WALL_THICKNESS, width: castleW, height: WALL_THICKNESS}); // Bottom (gate will be here)
+            walls.push({x: castleX, y: castleY, width: WALL_THICKNESS, height: castleH}); // Left
+            walls.push({x: castleX + castleW - WALL_THICKNESS, y: castleY, width: WALL_THICKNESS, height: castleH}); // Right
         }
         
         room.walls = walls;
@@ -205,96 +221,58 @@ function initRooms() {
 function initObjects() {
     objects = [];
     
-    // Enchanted Chalice (goal)
-    objects.push({
-        id: 'chalice',
-        type: 'chalice',
-        x: 400,
-        y: 200,
-        roomId: 2,
-        carriedBy: null,
-        color: COLORS.GOLD,
-        width: 12,
-        height: 12
-    });
-    
-    // Sword
+    // Sword - Room 1 (hub/transition room)
     objects.push({
         id: 'sword',
         type: 'sword',
-        x: 300,
-        y: 500,
-        roomId: 8,
+        x: CANVAS_WIDTH / 2 - 6,
+        y: CANVAS_HEIGHT / 2,
+        roomId: 1,
         carriedBy: null,
         color: COLORS.SILVER,
         width: 12,
         height: 4
     });
     
-    // Keys
+    // Key 1 - Room 2 (dragon room)
     objects.push({
-        id: 'key_black',
+        id: 'key_1',
         type: 'key',
-        x: 100,
-        y: 150,
-        roomId: 1,
-        carriedBy: null,
-        color: COLORS.BLACK,
-        width: 8,
-        height: 12,
-        keyColor: 'black'
-    });
-    
-    objects.push({
-        id: 'key_white',
-        type: 'key',
-        x: 500,
-        y: 350,
-        roomId: 7,
-        carriedBy: null,
-        color: COLORS.WHITE,
-        width: 8,
-        height: 12,
-        keyColor: 'white'
-    });
-    
-    objects.push({
-        id: 'key_yellow',
-        type: 'key',
-        x: 200,
-        y: 650,
-        roomId: 13,
+        x: CANVAS_WIDTH / 2 - 4,
+        y: CANVAS_HEIGHT / 2 - 30,
+        roomId: 2,
         carriedBy: null,
         color: COLORS.YELLOW,
         width: 8,
         height: 12,
-        keyColor: 'yellow'
+        keyColor: 'gold' // Unlocks golden castle
     });
     
-    // Bridge
+    // Key 2 - Room 3 (dragon room)
     objects.push({
-        id: 'bridge',
-        type: 'bridge',
-        x: 350,
-        y: 300,
+        id: 'key_2',
+        type: 'key',
+        x: CANVAS_WIDTH / 2 - 4,
+        y: CANVAS_HEIGHT / 2 - 30,
+        roomId: 3,
+        carriedBy: null,
+        color: COLORS.YELLOW,
+        width: 8,
+        height: 12,
+        keyColor: 'gold' // Unlocks golden castle
+    });
+    
+    // Enchanted Chalice (goal) - Room 4
+    objects.push({
+        id: 'chalice',
+        type: 'chalice',
+        x: CANVAS_WIDTH / 2 - 6,
+        y: CANVAS_HEIGHT / 2 - 6,
         roomId: 4,
         carriedBy: null,
-        color: COLORS.BROWN,
-        width: 16,
-        height: 8
-    });
-    
-    // Magnet
-    objects.push({
-        id: 'magnet',
-        type: 'magnet',
-        x: 450,
-        y: 600,
-        roomId: 19,
-        carriedBy: null,
-        color: COLORS.BLUE,
-        width: 10,
-        height: 10
+        color: COLORS.GOLD,
+        width: 12,
+        height: 12
     });
 }
 
@@ -302,13 +280,13 @@ function initObjects() {
 function initDragons() {
     dragons = [];
     
-    // Yorgle (Red Dragon)
+    // Yorgle (Red Dragon) - Room 2
     dragons.push({
         id: 'yorgle',
         name: 'Yorgle',
-        x: 250,
-        y: 250,
-        roomId: 3,
+        x: CANVAS_WIDTH / 2 - 6,
+        y: CANVAS_HEIGHT / 2 + 30,
+        roomId: 2,
         speed: 1.5,
         color: COLORS.RED,
         width: 12,
@@ -317,30 +295,15 @@ function initDragons() {
         carriedObject: null
     });
     
-    // Grundle (Green Dragon)
+    // Grundle (Green Dragon) - Room 3
     dragons.push({
         id: 'grundle',
         name: 'Grundle',
-        x: 400,
-        y: 450,
-        roomId: 9,
+        x: CANVAS_WIDTH / 2 - 6,
+        y: CANVAS_HEIGHT / 2 + 30,
+        roomId: 3,
         speed: 1.5,
         color: COLORS.GREEN,
-        width: 12,
-        height: 12,
-        alive: true,
-        carriedObject: null
-    });
-    
-    // Rhindle (Yellow Dragon)
-    dragons.push({
-        id: 'rhindle',
-        name: 'Rhindle',
-        x: 150,
-        y: 550,
-        roomId: 15,
-        speed: 1.5,
-        color: COLORS.YELLOW,
         width: 12,
         height: 12,
         alive: true,
@@ -354,9 +317,9 @@ function initGame() {
     initObjects();
     initDragons();
     keys = {};
-    currentRoomId = 0;
-    player.x = 320;
-    player.y = 384;
+    currentRoomId = 1; // Start in hub room (Room 1)
+    player.x = CANVAS_WIDTH / 2 - 4;
+    player.y = CANVAS_HEIGHT / 2 - 4;
     player.inventory = null;
 }
 
@@ -412,21 +375,22 @@ function updatePlayer() {
         }
     }
     
-    // Gate collision (if locked)
-    if (room.isCastle && room.gateLocked) {
-        const gateX = 300;
-        const gateY = CANVAS_HEIGHT - 40;
-        const gateWidth = 40;
-        const gateHeight = 20;
+    // Gate collision (if locked) - Golden Castle gate at bottom
+    if (room.isCastle && room.gateLocked && currentRoomId === 0) {
+        const castleX = 120;
+        const castleY = 60;
+        const castleW = 240;
+        const gateY = castleY + 180 - WALL_THICKNESS;
+        const gateX = castleX + castleW / 2 - DOOR_WIDTH / 2;
         
-        if (player.x < gateX + gateWidth &&
+        if (player.x < gateX + DOOR_WIDTH &&
             player.x + player.width > gateX &&
-            player.y < gateY + gateHeight &&
+            player.y < gateY + WALL_THICKNESS &&
             player.y + player.height > gateY) {
             // Check if player has matching key
             if (player.inventory && player.inventory.type === 'key') {
                 const keyColor = player.inventory.keyColor;
-                if (keyColor === room.castleColor) {
+                if (keyColor === 'gold' || keyColor === room.castleColor) {
                     room.gateLocked = false;
                     playBeep(500, 0.2);
                 } else {
@@ -442,28 +406,54 @@ function updatePlayer() {
         }
     }
     
-    // Room transitions
-    if (player.x < 20 && room.exits.west !== null) {
-        currentRoomId = room.exits.west;
-        player.x = CANVAS_WIDTH - 40;
-        playBeep(300, 0.1);
-    } else if (player.x > CANVAS_WIDTH - 40 && room.exits.east !== null) {
-        currentRoomId = room.exits.east;
-        player.x = 20;
-        playBeep(300, 0.1);
-    } else if (player.y < 20 && room.exits.north !== null) {
-        currentRoomId = room.exits.north;
-        player.y = CANVAS_HEIGHT - 40;
-        playBeep(300, 0.1);
-    } else if (player.y > CANVAS_HEIGHT - 40 && room.exits.south !== null) {
-        currentRoomId = room.exits.south;
-        player.y = 20;
-        playBeep(300, 0.1);
+    // Room transitions (check doorways)
+    const doorCenterX = CANVAS_WIDTH / 2;
+    const doorCenterY = CANVAS_HEIGHT / 2;
+    const doorHalfWidth = DOOR_WIDTH / 2;
+    
+    // Check west exit (left wall)
+    if (player.x < WALL_THICKNESS && room.exits.west !== null) {
+        const playerCenterY = player.y + player.height / 2;
+        if (playerCenterY > doorCenterY - doorHalfWidth && playerCenterY < doorCenterY + doorHalfWidth) {
+            currentRoomId = room.exits.west;
+            player.x = CANVAS_WIDTH - WALL_THICKNESS - player.width - 5;
+            playBeep(300, 0.1);
+        }
+    }
+    
+    // Check east exit (right wall)
+    if (player.x + player.width > CANVAS_WIDTH - WALL_THICKNESS && room.exits.east !== null) {
+        const playerCenterY = player.y + player.height / 2;
+        if (playerCenterY > doorCenterY - doorHalfWidth && playerCenterY < doorCenterY + doorHalfWidth) {
+            currentRoomId = room.exits.east;
+            player.x = WALL_THICKNESS + 5;
+            playBeep(300, 0.1);
+        }
+    }
+    
+    // Check north exit (top wall)
+    if (player.y < WALL_THICKNESS && room.exits.north !== null) {
+        const playerCenterX = player.x + player.width / 2;
+        if (playerCenterX > doorCenterX - doorHalfWidth && playerCenterX < doorCenterX + doorHalfWidth) {
+            currentRoomId = room.exits.north;
+            player.y = CANVAS_HEIGHT - WALL_THICKNESS - player.height - 5;
+            playBeep(300, 0.1);
+        }
+    }
+    
+    // Check south exit (bottom wall)
+    if (player.y + player.height > CANVAS_HEIGHT - WALL_THICKNESS && room.exits.south !== null) {
+        const playerCenterX = player.x + player.width / 2;
+        if (playerCenterX > doorCenterX - doorHalfWidth && playerCenterX < doorCenterX + doorHalfWidth) {
+            currentRoomId = room.exits.south;
+            player.y = WALL_THICKNESS + 5;
+            playBeep(300, 0.1);
+        }
     }
     
     // Keep player in bounds
-    player.x = Math.max(20, Math.min(CANVAS_WIDTH - 20 - player.width, player.x));
-    player.y = Math.max(20, Math.min(CANVAS_HEIGHT - 20 - player.height, player.y));
+    player.x = Math.max(WALL_THICKNESS, Math.min(CANVAS_WIDTH - WALL_THICKNESS - player.width, player.x));
+    player.y = Math.max(WALL_THICKNESS, Math.min(CANVAS_HEIGHT - WALL_THICKNESS - player.height, player.y));
     
     // Object collision (pickup)
     if (!player.inventory) {
@@ -642,12 +632,15 @@ function renderRoom() {
         ctx.fillRect(wall.x, wall.y, wall.width, wall.height);
     });
     
-    // Castle gate (if locked)
-    if (room.isCastle && room.gateLocked) {
-        ctx.fillStyle = room.castleColor === 'black' ? COLORS.BLACK :
-                        room.castleColor === 'white' ? COLORS.WHITE :
-                        room.castleColor === 'yellow' ? COLORS.YELLOW : COLORS.GOLD;
-        ctx.fillRect(300, CANVAS_HEIGHT - 40, 40, 20);
+    // Castle gate (if locked) - Golden Castle
+    if (room.isCastle && room.gateLocked && currentRoomId === 0) {
+        const castleX = 120;
+        const castleY = 60;
+        const castleW = 240;
+        const gateY = castleY + 180 - WALL_THICKNESS;
+        const gateX = castleX + castleW / 2 - DOOR_WIDTH / 2;
+        ctx.fillStyle = COLORS.GOLD;
+        ctx.fillRect(gateX, gateY, DOOR_WIDTH, WALL_THICKNESS);
     }
 }
 
