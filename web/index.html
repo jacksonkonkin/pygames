@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ARCADE COLLECTION - Retro-Modern Games</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="static/css/style.css">
+</head>
+<body>
+    <div class="grid-background"></div>
+    <div class="scanlines"></div>
+    <div class="container">
+        <header>
+            <h1 class="glitch" data-text="ARCADE COLLECTION">ARCADE COLLECTION</h1>
+            <p class="subtitle">Retro-Modern Games Built with JavaScript & Canvas</p>
+        </header>
+
+        <div class="games-grid">
+            <!-- NEON PONG -->
+            <div class="game-card" onclick="window.location.href='game.html?g=pong'">
+                <div class="game-icon">🎾</div>
+                <h2>NEON PONG</h2>
+                <p class="game-description">A high-speed vector-style pong clone with advanced AI and neon bloom effects.</p>
+                <div class="game-controls">
+                    <strong>SYSTEM:</strong> HTML5 CANVAS | 120 FPS
+                </div>
+                <button class="play-button">Insert Coin</button>
+            </div>
+
+            <!-- CYBER INVADERS -->
+            <div class="game-card" onclick="window.location.href='game.html?g=space_invaders'">
+                <div class="game-icon">🛸</div>
+                <h2>CYBER INVADERS</h2>
+                <p class="game-description">Parallax space combat featuring glowing alien formations and destructible barriers.</p>
+                <div class="game-controls">
+                    <strong>SYSTEM:</strong> HTML5 CANVAS | 60 FPS
+                </div>
+                <button class="play-button">Insert Coin</button>
+            </div>
+        </div>
+
+        <footer>
+            <p>Built with Pure HTML5, CSS3 & JavaScript | Zero Dependencies</p>
+        </footer>
+    </div>
+</body>
+</html>

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arcade - Play Now</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="static/css/style.css">
+</head>
+<body>
+    <div class="scanlines"></div>
+    <div class="game-container">
+        <div class="game-header">
+            <button class="back-button" onclick="window.location.href='index.html'">← Back to Arcade</button>
+            <h1 id="game-title">LOADING...</h1>
+            <button class="fullscreen-button" onclick="toggleFullscreen()">⛶ Fullscreen</button>
+        </div>
+
+        <div class="game-wrapper">
+            <div class="controls-info">
+                <h3>Controls:</h3>
+                <p id="game-controls">Initializing systems...</p>
+            </div>
+
+            <div class="game-frame" id="game-frame">
+                <iframe 
+                    src="" 
+                    frameborder="0"
+                    allowfullscreen
+                    id="game-iframe">
+                </iframe>
+            </div>
+        </div>
+    </div>
+
+    <script src="static/js/main.js"></script>
+    <script>
+        // Game metadata
+        const GAMES = {
+            'pong': {
+                'name': 'NEON PONG',
+                'controls': '[W/S] Player 1 | [Arrows] Player 2 | [A] AI Toggle',
+                'icon': '🎾',
+                'path': 'games/pong/index.html'
+            },
+            'space_invaders': {
+                'name': 'CYBER INVADERS',
+                'controls': '[Arrows/AD] Move | [Space] Pulse Laser | [P] Pause',
+                'icon': '🛸',
+                'path': 'games/space_invaders/index.html'
+            }
+        };
+
+        // Get game from URL
+        const params = new URLSearchParams(window.location.search);
+        const gameId = params.get('g');
+
+        if (gameId && GAMES[gameId]) {
+            const game = GAMES[gameId];
+            document.title = `${game.name} - Arcade`;
+            document.getElementById('game-title').innerText = `${game.icon} ${game.name}`;
+            document.getElementById('game-controls').innerText = game.controls;
+            document.getElementById('game-iframe').src = game.path;
+        } else {
+            window.location.href = 'index.html';
+        }
+    </script>
+</body>
+</html>

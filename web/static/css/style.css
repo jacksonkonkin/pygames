@@ -1,0 +1,370 @@
+:root {
+    --neon-cyan: #00f3ff;
+    --neon-magenta: #ff00ff;
+    --neon-purple: #bc13fe;
+    --bg-dark: #050505;
+    --bg-accent: #1a1a1a;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Orbitron', sans-serif;
+    background-color: var(--bg-dark);
+    min-height: 100vh;
+    color: #fff;
+    overflow-x: hidden;
+    position: relative;
+}
+
+/* 3D Neon Grid Background */
+.grid-background {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to bottom, #000 0%, #1a0033 100%);
+    z-index: -2;
+}
+
+.grid-background::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 200%;
+    height: 200%;
+    background-image: 
+        linear-gradient(var(--neon-purple) 1px, transparent 1px),
+        linear-gradient(90deg, var(--neon-purple) 1px, transparent 1px);
+    background-size: 50px 50px;
+    background-position: center;
+    transform: perspective(500px) rotateX(60deg) translateY(-50%) translateX(-25%);
+    mask-image: linear-gradient(to bottom, transparent, black);
+    animation: grid-scroll 10s linear infinite;
+    opacity: 0.3;
+}
+
+@keyframes grid-scroll {
+    0% { transform: perspective(500px) rotateX(60deg) translateY(-50%) translateX(-25%); }
+    100% { transform: perspective(500px) rotateX(60deg) translateY(0%) translateX(-25%); }
+}
+
+/* CRT Scanlines Overlay */
+.scanlines {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        rgba(18, 16, 16, 0) 50%,
+        rgba(0, 0, 0, 0.1) 50%
+    ), linear-gradient(
+        90deg,
+        rgba(255, 0, 0, 0.03),
+        rgba(0, 255, 0, 0.01),
+        rgba(0, 0, 255, 0.03)
+    );
+    background-size: 100% 4px, 3px 100%;
+    pointer-events: none;
+    z-index: 1000;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    position: relative;
+    z-index: 1;
+}
+
+header {
+    text-align: center;
+    padding: 60px 20px;
+}
+
+header h1 {
+    font-family: 'Press Start 2P', cursive;
+    font-size: 2.5em;
+    margin-bottom: 20px;
+    color: #fff;
+    text-shadow: 
+        0 0 5px #fff,
+        0 0 10px var(--neon-cyan),
+        0 0 20px var(--neon-cyan),
+        0 0 40px var(--neon-cyan);
+    letter-spacing: 4px;
+    animation: title-glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes title-glow {
+    from { text-shadow: 0 0 5px #fff, 0 0 10px var(--neon-cyan), 0 0 20px var(--neon-cyan); }
+    to { text-shadow: 0 0 10px #fff, 0 0 20px var(--neon-cyan), 0 0 40px var(--neon-cyan), 0 0 60px var(--neon-cyan); }
+}
+
+.subtitle {
+    font-size: 1.1em;
+    color: var(--neon-magenta);
+    text-transform: uppercase;
+    letter-spacing: 5px;
+    text-shadow: 0 0 5px var(--neon-magenta);
+}
+
+.games-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 40px;
+    padding: 40px 0;
+}
+
+.game-card {
+    background: rgba(20, 20, 20, 0.7);
+    backdrop-filter: blur(10px);
+    border: 2px solid var(--neon-cyan);
+    border-radius: 5px;
+    padding: 30px;
+    box-shadow: 
+        0 0 10px rgba(0, 243, 255, 0.2),
+        inset 0 0 15px rgba(0, 243, 255, 0.1);
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+}
+
+.game-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.1),
+        transparent
+    );
+    transition: 0.5s;
+}
+
+.game-card:hover::before {
+    left: 100%;
+}
+
+.game-card:hover {
+    transform: scale(1.05);
+    border-color: var(--neon-magenta);
+    box-shadow: 
+        0 0 20px rgba(255, 0, 255, 0.4),
+        inset 0 0 20px rgba(255, 0, 255, 0.2);
+}
+
+.game-icon {
+    font-size: 4em;
+    text-align: center;
+    margin-bottom: 20px;
+    filter: drop-shadow(0 0 10px currentColor);
+}
+
+.game-card h2 {
+    font-family: 'Press Start 2P', cursive;
+    color: #fff;
+    margin-bottom: 20px;
+    font-size: 1.2em;
+    text-align: center;
+}
+
+.game-card:hover h2 {
+    color: var(--neon-magenta);
+    text-shadow: 0 0 5px var(--neon-magenta);
+}
+
+.game-description {
+    color: #ccc;
+    line-height: 1.6;
+    margin-bottom: 20px;
+    font-size: 0.9em;
+    text-align: center;
+}
+
+.game-controls {
+    background: rgba(0, 0, 0, 0.5);
+    padding: 15px;
+    border-left: 3px solid var(--neon-cyan);
+    font-size: 0.8em;
+    color: #aaa;
+    margin-bottom: 25px;
+    font-family: monospace;
+}
+
+.play-button {
+    width: 100%;
+    padding: 15px;
+    background: transparent;
+    color: #fff;
+    border: 2px solid var(--neon-cyan);
+    border-radius: 0;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1em;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: 0.3s;
+    position: relative;
+}
+
+.play-button:hover {
+    background: var(--neon-cyan);
+    color: #000;
+    box-shadow: 0 0 20px var(--neon-cyan);
+}
+
+footer {
+    text-align: center;
+    color: rgba(255, 255, 255, 0.5);
+    padding: 40px 20px;
+    font-size: 0.8em;
+    letter-spacing: 2px;
+}
+
+/* Game Player Page Specific */
+.game-container {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: #000;
+}
+
+.game-header {
+    background: var(--bg-accent);
+    padding: 15px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid var(--neon-purple);
+    box-shadow: 0 0 15px var(--neon-purple);
+}
+
+.game-header h1 {
+    font-family: 'Press Start 2P', cursive;
+    color: var(--neon-cyan);
+    font-size: 1.2em;
+    text-shadow: 0 0 10px var(--neon-cyan);
+}
+
+.back-button, .fullscreen-button {
+    padding: 10px 20px;
+    background: transparent;
+    color: #fff;
+    border: 2px solid var(--neon-magenta);
+    font-family: 'Orbitron', sans-serif;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.back-button:hover, .fullscreen-button:hover {
+    background: var(--neon-magenta);
+    box-shadow: 0 0 15px var(--neon-magenta);
+    color: #000;
+}
+
+.game-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    gap: 20px;
+    background: radial-gradient(circle at center, #1a0033 0%, #000 100%);
+}
+
+.controls-info {
+    background: rgba(0, 0, 0, 0.8);
+    padding: 15px 25px;
+    border-left: 4px solid var(--neon-magenta);
+    box-shadow: 0 0 10px rgba(255, 0, 255, 0.1);
+}
+
+.controls-info h3 {
+    color: var(--neon-magenta);
+    font-family: 'Press Start 2P', cursive;
+    font-size: 0.8em;
+    margin-bottom: 10px;
+}
+
+.controls-info p {
+    color: #fff;
+    font-size: 0.9em;
+    letter-spacing: 1px;
+}
+
+.game-frame {
+    flex: 1;
+    background: #000;
+    border: 4px solid #333;
+    position: relative;
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
+}
+
+/* Simulated CRT Frame effect */
+.game-frame::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at center, transparent 70%, rgba(0,0,0,0.4) 100%);
+    pointer-events: none;
+}
+
+#game-iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+}
+
+/* Glitch Effect on Title */
+.glitch {
+    position: relative;
+}
+
+.glitch::before,
+.glitch::after {
+    content: attr(data-text);
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0.8;
+}
+
+.glitch::before {
+    color: var(--neon-cyan);
+    z-index: -1;
+    animation: glitch 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) both infinite;
+}
+
+.glitch::after {
+    color: var(--neon-magenta);
+    z-index: -2;
+    animation: glitch 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) reverse both infinite;
+}
+
+@keyframes glitch {
+    0% { transform: translate(0); }
+    20% { transform: translate(-3px, 3px); }
+    40% { transform: translate(-3px, -3px); }
+    60% { transform: translate(3px, 3px); }
+    80% { transform: translate(3px, -3px); }
+    100% { transform: translate(0); }
+}
