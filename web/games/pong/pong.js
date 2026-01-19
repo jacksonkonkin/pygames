@@ -54,7 +54,7 @@ const WINNING_SCORE = 7;
 let gameState = 'menu'; // menu, ai_difficulty, countdown, playing, paused, game_over
 let aiEnabled = false;
 let aiDifficulty = 'medium';
-let aiSpeed = 5;
+let aiSpeed = 3;
 
 // Ball
 let ballX = WINDOW_WIDTH / 2;
@@ -192,17 +192,17 @@ document.addEventListener('keydown', (e) => {
     } else if (gameState === 'ai_difficulty') {
         if (e.key === '1') {
             aiDifficulty = 'easy';
-            aiSpeed = 4;
+            aiSpeed = 3;
             aiEnabled = true;
             startCountdown();
         } else if (e.key === '2') {
             aiDifficulty = 'medium';
-            aiSpeed = 5;
+            aiSpeed = 4;
             aiEnabled = true;
             startCountdown();
         } else if (e.key === '3') {
             aiDifficulty = 'hard';
-            aiSpeed = 6;
+            aiSpeed = 5;
             aiEnabled = true;
             startCountdown();
         } else if (e.key === 'Escape') {
