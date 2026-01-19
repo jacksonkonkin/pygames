@@ -3,26 +3,40 @@ let canvas, ctx, overlay;
 
 // Wait for DOM to be ready
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM Content Loaded - Initializing Space Invaders');
+    
     canvas = document.getElementById('gameCanvas');
     ctx = canvas.getContext('2d');
     overlay = document.getElementById('overlay');
     
-    // Initialize game
-    initStars();
-    initEnemies();
-    initBarriers();
-    showMenu();
-    gameLoop(0);
+    if (!canvas || !ctx || !overlay) {
+        console.error('Failed to find required DOM elements!', {canvas, ctx, overlay});
+        return;
+    }
     
-    // Use event delegation for buttons
-    overlay.addEventListener('click', (e) => {
-        if (e.target.classList.contains('button') || e.target.closest('.button')) {
-            const button = e.target.closest('.button') || e.target;
+    console.log('DOM elements found, setting up event listeners');
+    
+    // Use event delegation for buttons - attach to document to catch all clicks
+    document.addEventListener('click', (e) => {
+        const button = e.target.closest('.button');
+        if (button) {
+            console.log('Button clicked!', button.dataset.action, button);
             if (button.dataset.action === 'start') {
+                console.log('Starting game');
                 startGame();
             }
         }
     });
+    
+    // Initialize game
+    console.log('Initializing game systems');
+    initStars();
+    initEnemies();
+    initBarriers();
+    console.log('Showing menu');
+    showMenu();
+    console.log('Starting game loop');
+    gameLoop(0);
 });
 
 // Constants
@@ -357,10 +371,12 @@ document.addEventListener('keyup', (e) => {
 });
 
 function startGame() {
+    console.log('startGame called');
     startNewGame();
 }
 
 function startNewGame() {
+    console.log('startNewGame: Initializing new game');
     playerX = PLAYER_START_X;
     playerY = PLAYER_START_Y;
     playerLives = PLAYER_LIVES;
@@ -372,6 +388,7 @@ function startNewGame() {
     initEnemies();
     initBarriers();
     gameState = 'playing';
+    console.log('startNewGame: Hiding overlay');
     hideOverlay();
 }
 
@@ -388,15 +405,37 @@ function startNextWave() {
 }
 
 function showMenu() {
-    if (!overlay) return;
+    if (!overlay) {
+        console.error('showMenu: overlay not found!');
+        return;
+    }
+    console.log('showMenu: Setting up menu');
     overlay.style.display = 'flex';
+    overlay.style.pointerEvents = 'auto'; // Enable pointer events for overlay
     overlay.innerHTML = `
         <h1>👾 SPACE INVADERS</h1>
         <h2>Defend Earth!</h2>
         <p>Arrow Keys / A/D - Move<br>SPACE - Shoot<br>P - Pause</p>
         <p>High Score: ${highScore}</p>
-        <button class="button" data-action="start">Press SPACE to Start</button>
+        <button class="button" data-action="start" onclick="window.startGame()">Press SPACE to Start</button>
     `;
+    console.log('showMenu: Menu HTML set, button should be clickable');
+    
+    // Also attach event listener directly as backup
+    setTimeout(() => {
+        const button = overlay.querySelector('.button');
+        if (button) {
+            console.log('Found button, attaching direct listener');
+            button.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Direct click handler fired!');
+                startGame();
+            });
+        } else {
+            console.error('Button not found in overlay!');
+        }
+    }, 100);
 }
 
 function showPaused() {
@@ -409,7 +448,11 @@ function showPaused() {
 }
 
 function hideOverlay() {
-    overlay.style.display = 'none';
+    if (overlay) {
+        overlay.style.display = 'none';
+        overlay.style.pointerEvents = 'none';
+        console.log('Overlay hidden');
+    }
 }
 
 function update() {

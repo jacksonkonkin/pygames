@@ -3,28 +3,42 @@ let canvas, ctx, overlay, overlayTitle, overlayText;
 
 // Wait for DOM to be ready
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM Content Loaded - Initializing Pong');
+    
     canvas = document.getElementById('gameCanvas');
     ctx = canvas.getContext('2d');
     overlay = document.getElementById('overlay');
     overlayTitle = document.getElementById('overlayTitle');
     overlayText = document.getElementById('overlayText');
     
-    // Initialize game
-    showMenu();
-    gameLoop(0);
+    if (!canvas || !ctx || !overlay) {
+        console.error('Failed to find required DOM elements!', {canvas, ctx, overlay});
+        return;
+    }
     
-    // Use event delegation for buttons
-    overlay.addEventListener('click', (e) => {
-        if (e.target.classList.contains('button') || e.target.closest('.button')) {
-            const button = e.target.closest('.button') || e.target;
+    console.log('DOM elements found, setting up event listeners');
+    
+    // Use event delegation for buttons - attach to document to catch all clicks
+    document.addEventListener('click', (e) => {
+        const button = e.target.closest('.button');
+        if (button) {
+            console.log('Button clicked!', button.dataset.action, button);
             const action = button.dataset.action;
             if (action === 'twoPlayer') {
+                console.log('Starting two player game');
                 startGame('twoPlayer');
             } else if (action === 'ai') {
+                console.log('Starting AI game');
                 startGame('ai');
             }
         }
     });
+    
+    // Initialize game
+    console.log('Showing menu');
+    showMenu();
+    console.log('Starting game loop');
+    gameLoop(0);
 });
 
 // Constants
@@ -229,10 +243,13 @@ document.addEventListener('keyup', (e) => {
 });
 
 function startGame(mode) {
+    console.log('startGame called with mode:', mode);
     if (mode === 'twoPlayer') {
+        console.log('Starting two player mode');
         aiEnabled = false;
         startCountdown();
     } else if (mode === 'ai') {
+        console.log('Starting AI difficulty selection');
         gameState = 'ai_difficulty';
         showAIDifficultyMenu();
     }
@@ -246,20 +263,46 @@ function startCountdown() {
 }
 
 function showMenu() {
-    if (!overlay) return;
+    if (!overlay) {
+        console.error('showMenu: overlay not found!');
+        return;
+    }
+    console.log('showMenu: Setting up menu');
     overlay.style.display = 'flex';
+    overlay.style.pointerEvents = 'auto'; // Enable pointer events for overlay
     overlay.innerHTML = `
         <h1>PONG</h1>
         <h2>Classic Arcade Game</h2>
         <p>Press 1 for Two Player<br>Press 2 for vs AI</p>
         <p>W/S - Left Paddle | Arrow Keys - Right Paddle</p>
-        <button class="button" data-action="twoPlayer">1 - Two Player</button>
-        <button class="button" data-action="ai">2 - vs AI</button>
+        <button class="button" data-action="twoPlayer" onclick="window.startGame('twoPlayer')">1 - Two Player</button>
+        <button class="button" data-action="ai" onclick="window.startGame('ai')">2 - vs AI</button>
     `;
+    console.log('showMenu: Menu HTML set, buttons should be clickable');
+    
+    // Also attach event listeners directly as backup
+    setTimeout(() => {
+        const buttons = overlay.querySelectorAll('.button');
+        console.log('Found buttons:', buttons.length);
+        buttons.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Direct click handler fired!', btn.dataset.action);
+                const action = btn.dataset.action;
+                if (action === 'twoPlayer') {
+                    startGame('twoPlayer');
+                } else if (action === 'ai') {
+                    startGame('ai');
+                }
+            });
+        });
+    }, 100);
 }
 
 function showAIDifficultyMenu() {
     overlay.style.display = 'flex';
+    overlay.style.pointerEvents = 'auto';
     overlay.innerHTML = `
         <h1>Select AI Difficulty</h1>
         <h2>1 - Easy</h2>
@@ -282,7 +325,11 @@ function showPaused() {
 }
 
 function hideOverlay() {
-    overlay.style.display = 'none';
+    if (overlay) {
+        overlay.style.display = 'none';
+        overlay.style.pointerEvents = 'none';
+        console.log('Overlay hidden');
+    }
 }
 
 function resetGame() {
