@@ -61,8 +61,8 @@ let ballX = WINDOW_WIDTH / 2;
 let ballY = WINDOW_HEIGHT / 2;
 let prevBallX = WINDOW_WIDTH / 2;
 let prevBallY = WINDOW_HEIGHT / 2;
-let ballSpeedX = 4;
-let ballSpeedY = 4;
+let ballSpeedX = 2.5;
+let ballSpeedY = 2.5;
 let ballSpeedMultiplier = 1.0;
 const ballRadius = 15;
 
@@ -132,6 +132,9 @@ let countdownTimer = 0;
 // Goal text
 let goalTextTimer = 0;
 let goalScorer = null;
+
+// Round start timer (pause after scoring)
+let roundStartTimer = 0;
 
 // Flash timers
 let leftPaddleFlash = 0;
@@ -337,8 +340,8 @@ function resetGame() {
     ballY = WINDOW_HEIGHT / 2;
     prevBallX = WINDOW_WIDTH / 2;
     prevBallY = WINDOW_HEIGHT / 2;
-    ballSpeedX = 4;
-    ballSpeedY = 4;
+    ballSpeedX = 2.5;
+    ballSpeedY = 2.5;
     ballSpeedMultiplier = 1.0;
     leftPaddleY = WINDOW_HEIGHT / 2 - 40;
     rightPaddleY = WINDOW_HEIGHT / 2 - 40;
@@ -351,6 +354,7 @@ function resetGame() {
     countdownTimer = 0;
     goalTextTimer = 0;
     goalScorer = null;
+    roundStartTimer = 0;
 }
 
 function update() {
@@ -377,6 +381,24 @@ function update() {
         if (goalTextTimer === 0) {
             goalScorer = null;
         }
+    }
+    
+    // Handle round start pause after scoring
+    if (roundStartTimer > 0) {
+        roundStartTimer--;
+        if (roundStartTimer === 0) {
+            // Reset ball position and speed after pause
+            ballX = WINDOW_WIDTH / 2;
+            ballY = WINDOW_HEIGHT / 2;
+            prevBallX = WINDOW_WIDTH / 2;
+            prevBallY = WINDOW_HEIGHT / 2;
+            // Determine direction based on who scored last
+            ballSpeedX = goalScorer === 'LEFT' ? 2.5 : -2.5;
+            ballSpeedY = 2.5;
+            ballSpeedMultiplier = 1.0;
+        }
+        // Don't update game during pause
+        return;
     }
     
     if (gameState !== 'playing') {
@@ -426,7 +448,7 @@ function update() {
     ballY += ballSpeedY * speedMultiplier;
     
     // Improved collision detection - check if ball crossed paddle boundary
-    // Left paddle collision
+    // Left paddle collision (side)
     if (ballSpeedX < 0 && prevBallX - ballRadius > leftPaddleX + paddleWidth && 
         ballX - ballRadius <= leftPaddleX + paddleWidth) {
         // Ball crossed the left paddle's right edge
@@ -450,12 +472,61 @@ function update() {
         }
     }
     
-    // Right paddle collision
+    // Right paddle collision (side)
     if (ballSpeedX > 0 && prevBallX + ballRadius < rightPaddleX && 
         ballX + ballRadius >= rightPaddleX) {
         // Ball crossed the right paddle's left edge
         if (ballY + ballRadius > rightPaddleY && ballY - ballRadius < rightPaddleY + paddleHeight) {
             // Correct ball position to prevent phasing
+            ballX = rightPaddleX - ballRadius;
+            ballSpeedX = -ballSpeedX;
+            
+            const paddleCenter = rightPaddleY + paddleHeight / 2;
+            const hitPosition = ballY - paddleCenter;
+            const angleAdjustment = hitPosition / (paddleHeight / 2) * 2;
+            ballSpeedY += angleAdjustment;
+            
+            if (ballSpeedMultiplier < 2.0) {
+                ballSpeedMultiplier += 0.05;
+            }
+            
+            rightPaddleFlash = 10;
+            createHitParticles(ballX, ballY, NEON_CYAN);
+            playPaddleHit();
+        }
+    }
+    
+    // Additional check for ball phasing through paddle sides (backup detection)
+    // Left paddle - check if ball is inside paddle bounds
+    if (ballX - ballRadius < leftPaddleX + paddleWidth && ballX + ballRadius > leftPaddleX &&
+        ballY + ballRadius > leftPaddleY && ballY - ballRadius < leftPaddleY + paddleHeight) {
+        // Ball is intersecting with left paddle
+        if (ballSpeedX < 0) {
+            // Ball moving left, push it out to the right
+            ballX = leftPaddleX + paddleWidth + ballRadius;
+            ballSpeedX = -ballSpeedX;
+            
+            const paddleCenter = leftPaddleY + paddleHeight / 2;
+            const hitPosition = ballY - paddleCenter;
+            const angleAdjustment = hitPosition / (paddleHeight / 2) * 2;
+            ballSpeedY += angleAdjustment;
+            
+            if (ballSpeedMultiplier < 2.0) {
+                ballSpeedMultiplier += 0.05;
+            }
+            
+            leftPaddleFlash = 10;
+            createHitParticles(ballX, ballY, NEON_CYAN);
+            playPaddleHit();
+        }
+    }
+    
+    // Right paddle - check if ball is inside paddle bounds
+    if (ballX + ballRadius > rightPaddleX && ballX - ballRadius < rightPaddleX + paddleWidth &&
+        ballY + ballRadius > rightPaddleY && ballY - ballRadius < rightPaddleY + paddleHeight) {
+        // Ball is intersecting with right paddle
+        if (ballSpeedX > 0) {
+            // Ball moving right, push it out to the left
             ballX = rightPaddleX - ballRadius;
             ballSpeedX = -ballSpeedX;
             
@@ -488,65 +559,131 @@ function update() {
         playWallBounce();
     }
     
-    // Edge collision with paddles (top/bottom edges)
-    // Left paddle edges
-    if (ballX >= leftPaddleX && ballX <= leftPaddleX + paddleWidth && ballSpeedX < 0) {
-        // Top edge
-        if (prevBallY + ballRadius < leftPaddleY && ballY + ballRadius >= leftPaddleY && ballSpeedY > 0) {
+    // Edge collision with paddles (top/bottom edges) - comprehensive detection
+    // Left paddle top edge - check all movement directions
+    if (ballX + ballRadius > leftPaddleX && ballX - ballRadius < leftPaddleX + paddleWidth) {
+        // Ball is horizontally aligned with left paddle
+        // Top edge collision - ball moving down into paddle top
+        if (prevBallY + ballRadius < leftPaddleY && ballY + ballRadius >= leftPaddleY) {
             ballY = leftPaddleY - ballRadius;
             ballSpeedY = -ballSpeedY;
-            ballSpeedX = -ballSpeedX;
+            // Also reverse X direction if ball is moving toward paddle
+            if (ballSpeedX < 0) {
+                ballSpeedX = -ballSpeedX;
+            }
             leftPaddleFlash = 10;
             createHitParticles(ballX, ballY, NEON_CYAN);
             playPaddleHit();
         }
-        // Bottom edge
-        if (prevBallY - ballRadius > leftPaddleY + paddleHeight && ballY - ballRadius <= leftPaddleY + paddleHeight && ballSpeedY < 0) {
+        // Bottom edge collision - ball moving up into paddle bottom
+        else if (prevBallY - ballRadius > leftPaddleY + paddleHeight && ballY - ballRadius <= leftPaddleY + paddleHeight) {
             ballY = leftPaddleY + paddleHeight + ballRadius;
             ballSpeedY = -ballSpeedY;
-            ballSpeedX = -ballSpeedX;
+            // Also reverse X direction if ball is moving toward paddle
+            if (ballSpeedX < 0) {
+                ballSpeedX = -ballSpeedX;
+            }
             leftPaddleFlash = 10;
             createHitParticles(ballX, ballY, NEON_CYAN);
             playPaddleHit();
         }
     }
     
-    // Right paddle edges
-    if (ballX >= rightPaddleX && ballX <= rightPaddleX + paddleWidth && ballSpeedX > 0) {
-        // Top edge
-        if (prevBallY + ballRadius < rightPaddleY && ballY + ballRadius >= rightPaddleY && ballSpeedY > 0) {
+    // Right paddle top edge - check all movement directions
+    if (ballX + ballRadius > rightPaddleX && ballX - ballRadius < rightPaddleX + paddleWidth) {
+        // Ball is horizontally aligned with right paddle
+        // Top edge collision - ball moving down into paddle top
+        if (prevBallY + ballRadius < rightPaddleY && ballY + ballRadius >= rightPaddleY) {
             ballY = rightPaddleY - ballRadius;
             ballSpeedY = -ballSpeedY;
-            ballSpeedX = -ballSpeedX;
+            // Also reverse X direction if ball is moving toward paddle
+            if (ballSpeedX > 0) {
+                ballSpeedX = -ballSpeedX;
+            }
             rightPaddleFlash = 10;
             createHitParticles(ballX, ballY, NEON_CYAN);
             playPaddleHit();
         }
-        // Bottom edge
-        if (prevBallY - ballRadius > rightPaddleY + paddleHeight && ballY - ballRadius <= rightPaddleY + paddleHeight && ballSpeedY < 0) {
+        // Bottom edge collision - ball moving up into paddle bottom
+        else if (prevBallY - ballRadius > rightPaddleY + paddleHeight && ballY - ballRadius <= rightPaddleY + paddleHeight) {
             ballY = rightPaddleY + paddleHeight + ballRadius;
             ballSpeedY = -ballSpeedY;
-            ballSpeedX = -ballSpeedX;
+            // Also reverse X direction if ball is moving toward paddle
+            if (ballSpeedX > 0) {
+                ballSpeedX = -ballSpeedX;
+            }
             rightPaddleFlash = 10;
             createHitParticles(ballX, ballY, NEON_CYAN);
             playPaddleHit();
         }
+    }
+    
+    // Additional check for corner collisions (ball hitting paddle corners)
+    // Left paddle corners
+    const leftPaddleTopX = leftPaddleX + paddleWidth;
+    const leftPaddleTopY = leftPaddleY;
+    const leftPaddleBottomY = leftPaddleY + paddleHeight;
+    const distToLeftTop = Math.sqrt((ballX - leftPaddleTopX) ** 2 + (ballY - leftPaddleTopY) ** 2);
+    const distToLeftBottom = Math.sqrt((ballX - leftPaddleTopX) ** 2 + (ballY - leftPaddleBottomY) ** 2);
+    
+    if (distToLeftTop < ballRadius && ballSpeedX < 0) {
+        // Hit top corner
+        const angle = Math.atan2(ballY - leftPaddleTopY, ballX - leftPaddleTopX);
+        ballSpeedX = Math.abs(ballSpeedX) * Math.cos(angle);
+        ballSpeedY = Math.abs(ballSpeedY) * Math.sin(angle);
+        ballX = leftPaddleTopX + ballRadius * Math.cos(angle);
+        ballY = leftPaddleTopY + ballRadius * Math.sin(angle);
+        leftPaddleFlash = 10;
+        createHitParticles(ballX, ballY, NEON_CYAN);
+        playPaddleHit();
+    } else if (distToLeftBottom < ballRadius && ballSpeedX < 0) {
+        // Hit bottom corner
+        const angle = Math.atan2(ballY - leftPaddleBottomY, ballX - leftPaddleTopX);
+        ballSpeedX = Math.abs(ballSpeedX) * Math.cos(angle);
+        ballSpeedY = Math.abs(ballSpeedY) * Math.sin(angle);
+        ballX = leftPaddleTopX + ballRadius * Math.cos(angle);
+        ballY = leftPaddleBottomY + ballRadius * Math.sin(angle);
+        leftPaddleFlash = 10;
+        createHitParticles(ballX, ballY, NEON_CYAN);
+        playPaddleHit();
+    }
+    
+    // Right paddle corners
+    const rightPaddleTopY = rightPaddleY;
+    const rightPaddleBottomY = rightPaddleY + paddleHeight;
+    const distToRightTop = Math.sqrt((ballX - rightPaddleX) ** 2 + (ballY - rightPaddleTopY) ** 2);
+    const distToRightBottom = Math.sqrt((ballX - rightPaddleX) ** 2 + (ballY - rightPaddleBottomY) ** 2);
+    
+    if (distToRightTop < ballRadius && ballSpeedX > 0) {
+        // Hit top corner
+        const angle = Math.atan2(ballY - rightPaddleTopY, ballX - rightPaddleX);
+        ballSpeedX = -Math.abs(ballSpeedX) * Math.cos(angle);
+        ballSpeedY = Math.abs(ballSpeedY) * Math.sin(angle);
+        ballX = rightPaddleX - ballRadius * Math.cos(angle);
+        ballY = rightPaddleTopY + ballRadius * Math.sin(angle);
+        rightPaddleFlash = 10;
+        createHitParticles(ballX, ballY, NEON_CYAN);
+        playPaddleHit();
+    } else if (distToRightBottom < ballRadius && ballSpeedX > 0) {
+        // Hit bottom corner
+        const angle = Math.atan2(ballY - rightPaddleBottomY, ballX - rightPaddleX);
+        ballSpeedX = -Math.abs(ballSpeedX) * Math.cos(angle);
+        ballSpeedY = Math.abs(ballSpeedY) * Math.sin(angle);
+        ballX = rightPaddleX - ballRadius * Math.cos(angle);
+        ballY = rightPaddleBottomY + ballRadius * Math.sin(angle);
+        rightPaddleFlash = 10;
+        createHitParticles(ballX, ballY, NEON_CYAN);
+        playPaddleHit();
     }
     
     // Score left
     if (ballX + ballRadius > WINDOW_WIDTH) {
-        ballX = WINDOW_WIDTH / 2;
-        ballY = WINDOW_HEIGHT / 2;
-        prevBallX = WINDOW_WIDTH / 2;
-        prevBallY = WINDOW_HEIGHT / 2;
-        ballSpeedX = 4;
-        ballSpeedY = 4;
-        ballSpeedMultiplier = 1.0;
         leftScore++;
         playScore();
         
         goalTextTimer = FPS;
         goalScorer = 'LEFT';
+        roundStartTimer = FPS; // 1 second pause at 120 FPS
         
         if (leftScore >= WINNING_SCORE) {
             gameState = 'game_over';
@@ -557,18 +694,12 @@ function update() {
     
     // Score right
     if (ballX - ballRadius < 0) {
-        ballX = WINDOW_WIDTH / 2;
-        ballY = WINDOW_HEIGHT / 2;
-        prevBallX = WINDOW_WIDTH / 2;
-        prevBallY = WINDOW_HEIGHT / 2;
-        ballSpeedX = -4;
-        ballSpeedY = 4;
-        ballSpeedMultiplier = 1.0;
         rightScore++;
         playScore();
         
         goalTextTimer = FPS;
         goalScorer = 'RIGHT';
+        roundStartTimer = FPS; // 1 second pause at 120 FPS
         
         if (rightScore >= WINNING_SCORE) {
             gameState = 'game_over';
